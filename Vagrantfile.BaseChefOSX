@@ -7,11 +7,19 @@ VAGRANTFILE_API_VERSION = "2"
 #
 # mac specific magic to avoid getting queried
 #
-pref_interface = ['en3: Thunderbolt 1', 'en4: Thunderbolt 2', 'en0: Wi-Fi (AirPort)']
-vm_interfaces = %x( VBoxManage list bridgedifs | grep ^Name ).gsub(/Name:\s+/, '').split("\n")
-pref_interface = pref_interface.map {|n| n if vm_interfaces.include?(n)}.compact
-$network_interface = pref_interface[0]
+#
+is_osx=false
 
+if (/darwin/ =~ RUBY_PLATFORM) != nil
+  is_osx=true
+end
+
+if is_osx
+  pref_interface = ['en3: Thunderbolt 1', 'en4: Thunderbolt 2', 'en0: Wi-Fi (AirPort)']
+  vm_interfaces = %x( VBoxManage list bridgedifs | grep ^Name ).gsub(/Name:\s+/, '').split("\n")
+  pref_interface = pref_interface.map {|n| n if vm_interfaces.include?(n)}.compact
+  $network_interface = pref_interface[0]
+end
 
 orgName='YOURORG'
 
@@ -28,8 +36,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.customize ["modifyvm", :id, "--memory", "2048"]
   end
 
-  config.vm.network "public_network", :bridge => $network_interface   
-  #config.vm.network "private_network", ip: "192.168.56.160".
+  if is_osx
+    config.vm.network "public_network", :bridge => $network_interface
+  else
+    config.vm.network "public_network"
+  end
+
+  config.vm.network "private_network", ip: "192.168.56.160".
+
+  filesync = %w(~/.gitconfig ~/.vimrc ~/.screenrc)
+  filesync.each do |src|
+    config.vm.provision :file do |file|
+      file.source = src
+      file.destination = src
+    end
+  end
 
   config.omnibus.chef_version = :latest
   #   chef.validation_client_name = "ORGNAME-validator"
