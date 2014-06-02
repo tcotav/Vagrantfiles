@@ -68,11 +68,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   boxes.each do |box|
     config.vm.define box.name do |vmbx|
       vmbx.vm.hostname = box.host_name
-      if is_osx
-        vmbx.vm.network "public_network", :bridge => $network_interface
-      else
-        vmbx.vm.network "public_network"
-      end
       vmbx.vm.network "private_network", ip: box.private_ip
       if box.chefdef
         vmbx.vm.provision :chef_client do |chef|
